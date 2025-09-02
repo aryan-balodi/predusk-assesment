@@ -70,7 +70,7 @@ def run_connectivity_tests() -> Dict[str, Any]:
     
     # Test Pinecone connection
     try:
-        from scripts.vector_store import VectorStore
+        from vector_store import VectorStore
         vs = VectorStore()
         stats = vs.get_index_stats()
         results['pinecone'] = {'success': True, 'stats': stats}
@@ -79,7 +79,7 @@ def run_connectivity_tests() -> Dict[str, Any]:
     
     # Test Groq connection
     try:
-        from scripts.llm_service import LLMService
+        from llm_service import LLMService
         llm = LLMService()
         results['groq'] = {'success': True}
     except Exception as e:
@@ -87,7 +87,7 @@ def run_connectivity_tests() -> Dict[str, Any]:
     
     # Test Cohere connection
     try:
-        from scripts.reranker import RerankerService
+        from reranker import RerankerService
         reranker = RerankerService()
         results['cohere'] = {'success': True}
     except Exception as e:

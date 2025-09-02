@@ -279,10 +279,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Import our custom modules
-from scripts.document_processor import DocumentProcessor
-from scripts.vector_store import VectorStore  
-from scripts.reranker import RerankerService, FallbackReranker
-from scripts.llm_service import LLMService
+from document_processor import DocumentProcessor
+from vector_store import VectorStore  
+from reranker import RerankerService, FallbackReranker
+from llm_service import LLMService
 
 
 class RAGApp:
