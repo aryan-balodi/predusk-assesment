@@ -160,6 +160,21 @@ st.markdown("""
         width: 100% !important;
         max-width: none !important;
         box-sizing: border-box;
+        display: block !important;
+    }
+    
+    /* Force answer section content to full width */
+    .answer-section h2,
+    .answer-section p,
+    .answer-section div {
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
+    /* Ensure parent containers of answer section are full width */
+    div:has(.answer-section) {
+        width: 100% !important;
+        max-width: none !important;
     }
     
     /* Hide Streamlit style */
@@ -246,6 +261,20 @@ st.markdown("""
         max-width: none !important;
     }
     
+    /* Additional force for answer section containers */
+    div[data-testid="stMarkdownContainer"]:has(.answer-section) {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Force all markdown content inside answer sections */
+    .answer-section div[data-testid="stMarkdownContainer"] {
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
     /* Override Streamlit's responsive breakpoints */
     @media (min-width: 576px) {
         .main .block-container {
@@ -274,6 +303,20 @@ st.markdown("""
     .css-1v0mbdj {
         max-width: none !important;
         width: 100% !important;
+    }
+    
+    /* Force any container with answer-section to full width */
+    *:has(.answer-section) {
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
+    /* Streamlit element containers should not constrain width */
+    .element-container:has(.answer-section),
+    div[data-testid="element-container"]:has(.answer-section) {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -326,23 +369,39 @@ class RAGApp:
         st.markdown('<h1 class="main-header">🔍 RAG Demo</h1>', unsafe_allow_html=True)
         st.markdown('<p class="sub-header">Intelligent Document Q&A System with Advanced AI</p>', unsafe_allow_html=True)
         
-        # Create main layout with modern cards - only show when no active query
-        if 'query_results' not in st.session_state:
-            col1, col2 = st.columns([1, 1])
-            
-            with col1:
-                # Status card
-                self._render_status_card()
-                
-            with col2:
-                # Quick stats card
-                self._render_stats_card()
-        
         # Sidebar for file upload and index management
         self._render_modern_sidebar()
         
-        # Main content area
+        # Main content area: either show results or the main interface
+        if 'query_results' in st.session_state:
+            self._render_results_page()
+        else:
+            self._render_main_interface()
+
+    def _render_main_interface(self):
+        """Renders the main interface with status, stats, and query input."""
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            self._render_status_card()
+        with col2:
+            self._render_stats_card()
+        
         self._render_modern_main_content()
+
+    def _render_results_page(self):
+        """Renders the full-width results page."""
+        results = st.session_state['query_results']
+        self._display_results(
+            result=results['result'],
+            docs=results['docs'],
+            timing_info=results['timing_info'],
+            show_scores=results['show_scores'],
+            show_timing=results['show_timing']
+        )
+        
+        if st.button("⬅️ Back to Dashboard", use_container_width=True):
+            del st.session_state['query_results']
+            st.rerun()
     
     def _render_status_card(self):
         """Render modern status card"""
@@ -646,51 +705,68 @@ class RAGApp:
                 st.error(f"Error generating answer: {str(e)}")
                 return
         
-        # Display results
-        self._display_results(result, reranked_docs, timing_info, show_scores, show_timing)
-    
+        # Store results in session state instead of displaying directly
+        st.session_state['query_results'] = {
+            'result': result,
+            'docs': reranked_docs,
+            'timing_info': timing_info,
+            'show_scores': show_scores,
+            'show_timing': show_timing
+        }
+        st.rerun()
+
     def _display_results(self, result: Dict[str, Any], docs: List[Dict[str, Any]], 
                         timing_info: Dict[str, float], show_scores: bool, show_timing: bool):
         """Display the query results with modern styling and full width"""
         
-        # Modern answer section - full width
-        st.markdown('<div class="answer-section">', unsafe_allow_html=True)
-        st.markdown("## 🤖 AI Response")
-        st.markdown(result['answer'])
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Modern answer section - full width using Streamlit containers properly
+        st.markdown("---")  # Visual separator
+        
+        # Use a single container for the full-width answer
+        with st.container():
+            st.markdown(f'''
+            <div class="answer-section">
+                <h2 style="color: #00D4AA; margin-bottom: 1rem;">🤖 AI Response</h2>
+                <div style="color: white; line-height: 1.6;">
+                    {result['answer']}
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
         
         # Modern citations section - full width
         if result['citations']:
-            st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-            st.markdown("## 📚 Source Citations")
-            
-            for citation in result['citations']:
-                # Enhanced citation display
-                citation_title = f"**[{citation['citation_num']}]** {citation['source']}"
-                if citation.get('title'):
-                    citation_title += f" - *{citation['title']}*"
-                if citation.get('section'):
-                    citation_title += f" → {citation['section']}"
+            with st.container():
+                st.markdown('''
+                <div class="custom-card">
+                    <h2 style="color: #00D4AA; margin-bottom: 1rem;">📚 Source Citations</h2>
+                </div>
+                ''', unsafe_allow_html=True)
                 
-                with st.expander(citation_title, expanded=False):
-                    st.markdown(f"📝 **Content Preview:**")
-                    st.markdown(f"> {citation['text_preview']}")
-                    
-                    # Enhanced metadata display - single line format
-                    metadata_parts = []
+                for citation in result['citations']:
+                    # Enhanced citation display
+                    citation_title = f"**[{citation['citation_num']}]** {citation['source']}"
+                    if citation.get('title'):
+                        citation_title += f" - *{citation['title']}*"
                     if citation.get('section'):
-                        metadata_parts.append(f"**📂 Section:** {citation['section']}")
-                    if citation.get('position'):
-                        metadata_parts.append(f"**📍 Position:** {citation['position']}")
-                    if show_scores:
-                        metadata_parts.append(f"**🎯 Score:** {citation['score']:.3f}")
-                        if 'rerank_score' in citation:
-                            metadata_parts.append(f"**⭐ Rerank:** {citation.get('rerank_score', 'N/A')}")
+                        citation_title += f" → {citation['section']}"
                     
-                    if metadata_parts:
-                        st.markdown(" | ".join(metadata_parts))
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+                    with st.expander(citation_title, expanded=False):
+                        st.markdown(f"📝 **Content Preview:**")
+                        st.markdown(f"> {citation['text_preview']}")
+                        
+                        # Enhanced metadata display - single line format
+                        metadata_parts = []
+                        if citation.get('section'):
+                            metadata_parts.append(f"**📂 Section:** {citation['section']}")
+                        if citation.get('position'):
+                            metadata_parts.append(f"**📍 Position:** {citation['position']}")
+                        if show_scores:
+                            metadata_parts.append(f"**🎯 Score:** {citation['score']:.3f}")
+                            if 'rerank_score' in citation:
+                                metadata_parts.append(f"**⭐ Rerank:** {citation.get('rerank_score', 'N/A')}")
+                        
+                        if metadata_parts:
+                            st.markdown(" | ".join(metadata_parts))
         
         # Modern sources and performance in side-by-side layout
         col1, col2 = st.columns([1, 1])
@@ -736,62 +812,64 @@ class RAGApp:
         
         # Modern performance chart - full width
         if show_timing:
-            st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-            st.markdown("## 📊 Performance Analytics")
-            
-            # Create performance chart
-            fig = go.Figure()
-            
-            stages = ['Retrieval', 'Reranking', 'Generation']
-            times = [
-                timing_info.get('retrieval', 0),
-                timing_info.get('reranking', 0), 
-                timing_info.get('llm_generation', 0)
-            ]
-            colors = ['#00D4AA', '#0066CC', '#FF6B6B']
-            
-            fig.add_trace(go.Bar(
-                x=stages,
-                y=times,
-                marker_color=colors,
-                text=[f"{t:.2f}s" for t in times],
-                textposition='auto',
-            ))
-            
-            fig.update_layout(
-                title="Processing Time Breakdown",
-                yaxis_title="Time (seconds)",
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white'),
-                height=300
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            with st.container():
+                st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+                st.markdown("## 📊 Performance Analytics")
+                
+                # Create performance chart
+                fig = go.Figure()
+                
+                stages = ['Retrieval', 'Reranking', 'Generation']
+                times = [
+                    timing_info.get('retrieval', 0),
+                    timing_info.get('reranking', 0), 
+                    timing_info.get('llm_generation', 0)
+                ]
+                colors = ['#00D4AA', '#0066CC', '#FF6B6B']
+                
+                fig.add_trace(go.Bar(
+                    x=stages,
+                    y=times,
+                    marker_color=colors,
+                    text=[f"{t:.2f}s" for t in times],
+                    textposition='auto',
+                ))
+                
+                fig.update_layout(
+                    title="Processing Time Breakdown",
+                    yaxis_title="Time (seconds)",
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='white'),
+                    height=300
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
         
         # Debug information with modern styling
         if show_scores:
-            st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-            st.markdown("## 🔍 Debug Information")
-            
-            for i, doc in enumerate(docs):
-                with st.expander(f"**Document {i+1}:** {doc['source']} - {doc.get('section', 'Unknown')}", expanded=False):
-                    st.markdown(f"**📝 Content:** {doc['text'][:200]}...")
-                    if doc.get('title'):
-                        st.markdown(f"**📖 Title:** {doc['title']}")
-                    
-                    # Debug metadata in single line
-                    debug_parts = []
-                    debug_parts.append(f"**🎯 Similarity:** {doc.get('score', 0):.3f}")
-                    if 'rerank_score' in doc:
-                        debug_parts.append(f"**⭐ Rerank:** {doc['rerank_score']:.3f}")
-                    if doc.get('position'):
-                        debug_parts.append(f"**📍 Position:** {doc['position']}")
-                    
-                    st.markdown(" | ".join(debug_parts))
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+            with st.container():
+                st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+                st.markdown("## 🔍 Debug Information")
+                
+                for i, doc in enumerate(docs):
+                    with st.expander(f"**Document {i+1}:** {doc['source']} - {doc.get('section', 'Unknown')}", expanded=False):
+                        st.markdown(f"**📝 Content:** {doc['text'][:200]}...")
+                        if doc.get('title'):
+                            st.markdown(f"**📖 Title:** {doc['title']}")
+                        
+                        # Debug metadata in single line
+                        debug_parts = []
+                        debug_parts.append(f"**🎯 Similarity:** {doc.get('score', 0):.3f}")
+                        if 'rerank_score' in doc:
+                            debug_parts.append(f"**⭐ Rerank:** {doc['rerank_score']:.3f}")
+                        if doc.get('position'):
+                            debug_parts.append(f"**📍 Position:** {doc['position']}")
+                        
+                        st.markdown(" | ".join(debug_parts))
+                
+                st.markdown('</div>', unsafe_allow_html=True)
 
 
 def main():
