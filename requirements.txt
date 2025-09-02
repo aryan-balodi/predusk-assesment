@@ -1,0 +1,9 @@
+streamlit==1.39.0
+pinecone-client==5.0.1
+groq==0.30.0
+PyPDF2==3.0.1
+python-dotenv==1.0.1
+sentence-transformers==3.1.1
+cohere==5.9.1
+requests==2.32.3
+plotly==5.24.1
