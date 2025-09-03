@@ -2,9 +2,9 @@
 
 A Retrieval-Augmented Generation (RAG) application that allows users to upload documents and ask questions, receiving answers with source citations.
 
-**📄 Resume**: [Your Resume Link Here - Replace with actual resume URL]
+**📄 Resume**: [View Resume](https://drive.google.com/file/d/1LteXSfKIKkFtBsW5Ez_EgrAyC9Tyg-3W/view?usp=sharing)
 
-**🔗 Live Demo**: [Your Streamlit Cloud URL - Will be updated after deployment]
+**🔗 Live Demo**: [View Live Demo](https://ragpipelinesearch.streamlit.app/)
 
 ## 🏗️ Architecture
 
@@ -324,4 +324,4 @@ The application includes built-in connectivity checks for:
 **Built for**: AI Engineer Assessment - Mini RAG System (Track B)  
 **Tech Stack**: Streamlit + Pinecone + Cohere + Groq + SentenceTransformers  
 **Deployment Ready**: ✅ All requirements met  
-**Resume**: [Your Resume Link Here - Replace with actual resume URL]
+**Resume**: [View Resume](https://example.com/your-resume.pdf)
